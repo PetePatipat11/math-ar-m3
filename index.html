@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR วิทยาศาสตร์: โลกและการเปลี่ยนแปลง</title>
+    <title>AR โลกและการเปลี่ยนแปลง (Pro)</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -11,7 +11,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
 
     <script>
-        // Component: ตรวจจับนิ้ว (Gesture Detector)
         AFRAME.registerComponent("gesture-detector", {
             schema: { element: { default: "" } },
             init: function() {
@@ -27,11 +26,6 @@
                 const currentState = this.getTouchState(event);
                 const previousState = this.internalState.previousState;
                 const gestureContinues = previousState && currentState && currentState.touchCount == previousState.touchCount;
-                const gestureEnded = previousState && !gestureContinues;
-                const gestureStarted = currentState && !gestureContinues;
-
-                if (gestureEnded) this.el.emit("gesture-end");
-                if (gestureStarted) this.el.emit("gesture-start");
                 if (gestureContinues) {
                     const eventDetail = {
                         positionChange: { x: currentState.position.x - previousState.position.x, y: currentState.position.y - previousState.position.y },
@@ -53,14 +47,8 @@
             }
         });
 
-        // Component: สั่งงานโมเดล (Gesture Handler)
         AFRAME.registerComponent("gesture-handler", {
-            schema: {
-                enabled: { default: true },
-                rotationFactor: { default: 5 }, // ความไวในการหมุน
-                minScale: { default: 0.1 },     // ย่อสุด
-                maxScale: { default: 8 },       // ขยายสุด
-            },
+            schema: { enabled: { default: true }, rotationFactor: { default: 5 }, minScale: { default: 0.1 }, maxScale: { default: 8 } },
             init: function() {
                 this.handleScale = this.handleScale.bind(this);
                 this.handleRotation = this.handleRotation.bind(this);
@@ -74,8 +62,8 @@
             },
             handleRotation: function(event) {
                 if (this.isVisible) {
-                    this.el.object3D.rotation.y += event.detail.positionChange.x * this.data.rotationFactor * 0.005; // หมุนซ้ายขวา
-                    this.el.object3D.rotation.x += event.detail.positionChange.y * this.data.rotationFactor * 0.005; // หมุนขึ้นลง
+                    this.el.object3D.rotation.y += event.detail.positionChange.x * this.data.rotationFactor * 0.005;
+                    this.el.object3D.rotation.x += event.detail.positionChange.y * this.data.rotationFactor * 0.005;
                 }
             },
             handleScale: function(event) {
@@ -93,59 +81,93 @@
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Kanit', sans-serif; }
 
-        /* --- UI หน้า Home --- */
-        #home-screen {
+        /* 3. Loading Screen (จะหายไปเมื่อพร้อม) */
+        #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #0b0f19 0%, #1a2a6c 50%, #b21f1f 100%);
-            z-index: 9999;
+            background: #0b0f19; z-index: 9999;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: white; text-align: center;
-            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            transition: opacity 0.8s ease-out; /* Fade out effect */
         }
-        .planet-icon { font-size: 100px; margin-bottom: 20px; animation: float 3s infinite; }
-        h1 { font-size: 2.5em; line-height: 1.2; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin: 0; }
-        h2 { font-size: 1.2em; color: #ffcc00; font-weight: 300; margin: 10px 0 40px 0; }
-        
-        .btn-start {
-            background: linear-gradient(90deg, #ff512f, #dd2476); color: white; border: none; padding: 15px 60px;
-            font-size: 1.5em; font-family: 'Kanit', sans-serif; font-weight: bold; border-radius: 50px;
-            cursor: pointer; box-shadow: 0 5px 20px rgba(221, 36, 118, 0.5); transition: all 0.3s ease; animation: pulse 2s infinite;
+        .loader {
+            border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid #00d2ff;
+            border-radius: 50%; width: 50px; height: 50px;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
         }
-        .btn-start:hover { transform: scale(1.05); }
+        .loading-text { color: white; font-size: 1.2em; letter-spacing: 1px; }
 
-        /* --- UI ปุ่มย้อนกลับ --- */
-        #ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; z-index: 1000; }
-        .btn-back { pointer-events: auto; position: absolute; top: 20px; left: 20px; background: rgba(255,255,255,0.9); border: none; padding: 10px 20px; border-radius: 30px; font-family: 'Kanit', bold; cursor: pointer; }
-        
-        /* กล่องแนะนำวิธีบังคับ */
-        .controls-hint {
-            position: absolute; bottom: 20px; width: 100%; text-align: center;
-            color: rgba(255,255,255,0.8); font-size: 0.9em; pointer-events: none;
-            text-shadow: 1px 1px 2px black;
+        /* 4. UI Overlay (แสดงทับกล้อง) */
+        #ui-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; /* ให้กดทะลุไปหมุนโมเดลได้ */
+            display: flex; flex-direction: column; justify-content: space-between;
+            z-index: 100;
         }
 
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(221, 36, 118, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
+        /* Header Bar */
+        .header-bar {
+            background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+            padding: 20px; text-align: center; color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .header-bar h1 { margin: 0; font-size: 1.4em; }
+        .header-bar p { margin: 5px 0 0; font-size: 0.9em; opacity: 0.8; }
+
+        /* Scanning Frame (กรอบเล็ง) */
+        .scan-frame {
+            width: 250px; height: 250px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3); /* ฉากมืดรอบๆ */
+        }
+        .scan-frame::after {
+            content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border: 2px dashed rgba(0, 210, 255, 0.8); border-radius: 25px;
+            animation: pulse-border 2s infinite;
+        }
+
+        /* Footer Controls */
+        .footer-bar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px); /* กระจกมัว */
+            padding: 15px; margin: 20px;
+            border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);
+            text-align: center; color: white;
+        }
+        .icon-row { display: flex; justify-content: center; gap: 20px; font-size: 0.9em; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse-border { 0% { transform: scale(0.95); opacity: 0.5; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.5; } }
     </style>
 </head>
 <body>
 
-    <div id="home-screen">
-        <div class="planet-icon">🌍</div>
-        <h1>โลกและการเปลี่ยนแปลง</h1>
-        <h2>วิชาวิทยาศาสตร์ ชั้นมัธยมศึกษาปีที่ 2</h2>
-        <button class="btn-start" onclick="startCamera()">🚀 เริ่มบทเรียน</button>
+    <div id="loading-overlay">
+        <div class="loader"></div>
+        <div class="loading-text">กำลังเปิดกล้อง...</div>
     </div>
 
-    <div id="ui-layer">
-        <button class="btn-back" onclick="stopCamera()">🏠 หน้าหลัก</button>
-        <div class="controls-hint">👆 1 นิ้วหมุน | ✌️ 2 นิ้วซูม</div>
+    <div id="ui-overlay">
+        <div class="header-bar">
+            <h1>โลกและการเปลี่ยนแปลง</h1>
+            <p>ส่องภาพเพื่อดูโมเดล 3 มิติ</p>
+        </div>
+        
+        <div class="scan-frame"></div>
+
+        <div class="footer-bar">
+            <div class="icon-row">
+                <span>👆 1 นิ้ว หมุน</span>
+                <span>✌️ 2 นิ้ว ซูม</span>
+            </div>
+        </div>
     </div>
 
     <a-scene 
-        mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; uiScanning: no;" 
+        mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; uiScanning: no; filterMinCF:0.0001; filterBeta: 0.001;" 
         color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
+        renderer="colorManagement: true, physicallyCorrectLights, antialias: true" 
         vr-mode-ui="enabled: false" 
         device-orientation-permission-ui="enabled: false"
         gesture-detector>
@@ -176,14 +198,22 @@
     </a-scene>
 
     <script>
-        function startCamera() {
-            document.getElementById('home-screen').style.transform = 'translateY(-100%)';
-            document.getElementById('ui-layer').style.display = 'block';
-        }
-        function stopCamera() {
-            document.getElementById('home-screen').style.transform = 'translateY(0%)';
-            setTimeout(() => { document.getElementById('ui-layer').style.display = 'none'; }, 500);
-        }
+        // ระบบ Fade Out หน้า Loading เมื่อกล้องพร้อม
+        const scene = document.querySelector('a-scene');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        scene.addEventListener('arReady', (event) => {
+            // เมื่อ AR พร้อมใช้งาน ให้หน้า Loading จางหายไป
+            loadingOverlay.style.opacity = '0';
+            // รอ animation จบแล้วค่อยซ่อนถาวร
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 800);
+        });
+
+        // (Optional) เมื่อเจอ Marker อาจจะซ่อนกรอบเล็งก็ได้
+        // scene.addEventListener('targetFound', (e) => { ... });
     </script>
+
 </body>
 </html>
