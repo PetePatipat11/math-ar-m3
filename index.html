@@ -80,11 +80,12 @@
     </script>
 
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Kanit', sans-serif; }
+        body { margin: 0; overflow: hidden; font-family: 'Kanit', sans-serif; background: black; }
 
-        /* แก้ปัญหา iOS Video เต็มจอ */
+        /* แก้ปัญหา Video บน iOS */
         video {
-            position: absolute; top: 0; left: 0; z-index: -100 !important; width: 100% !important; height: 100% !important; object-fit: cover !important;
+            position: absolute; top: 0; left: 0; z-index: -2 !important; 
+            width: 100% !important; height: 100% !important; object-fit: cover !important;
         }
 
         /* --- 1. หน้า Home Screen --- */
@@ -96,17 +97,30 @@
             color: white; text-align: center;
             transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
         }
-        .planet-icon { font-size: 100px; margin-bottom: 20px; animation: float 3s infinite; }
-        h1 { font-size: 2.5em; margin: 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
+        .planet-icon { font-size: 100px; margin-bottom: 20px; animation: float 3s infinite; filter: drop-shadow(0 0 15px rgba(255,255,255,0.4)); }
+        h1 { font-size: 2.5em; margin: 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); line-height: 1.2; }
         h2 { font-size: 1.2em; color: #ffcc00; font-weight: 300; margin: 10px 0 50px 0; }
         
         .btn-start {
             background: linear-gradient(90deg, #ff512f, #dd2476); color: white; border: none; padding: 18px 70px;
             font-size: 1.6em; font-family: 'Kanit', sans-serif; font-weight: bold; border-radius: 50px; cursor: pointer;
-            box-shadow: 0 5px 20px rgba(221, 36, 118, 0.5); animation: pulse 2s infinite;
+            box-shadow: 0 5px 20px rgba(221, 36, 118, 0.5); animation: pulse 2s infinite; transition: all 0.3s ease;
+        }
+        .btn-start:hover { transform: scale(1.05); }
+
+        /* --- 2. Loading Screen (ซ่อนอยู่หลัง Home, แสดงตอนโหลดกล้อง) --- */
+        #loading-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9000;
+            display: none; flex-direction: column; justify-content: center; align-items: center; color: white;
+            transition: opacity 0.5s ease;
+        }
+        .loader {
+            border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid #00d2ff;
+            border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px;
         }
 
-        /* --- 2. UI Overlay --- */
+        /* --- 3. UI Overlay (ขณะใช้กล้อง) --- */
         #ui-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; display: none; z-index: 1000;
@@ -114,16 +128,19 @@
         .btn-back {
             pointer-events: auto; position: absolute; top: 20px; left: 20px;
             background: rgba(255,255,255,0.9); color: #333; border: none; padding: 10px 20px;
-            border-radius: 30px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            border-radius: 30px; font-family: 'Kanit', sans-serif; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         .controls-hint {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px);
-            padding: 10px 30px; border-radius: 20px; color: white; border: 1px solid rgba(255,255,255,0.2);
+            padding: 10px 30px; border-radius: 20px; color: white; font-size: 0.9em; border: 1px solid rgba(255,255,255,0.2);
+            white-space: nowrap;
         }
 
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(221, 36, 118, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -135,15 +152,20 @@
         <button class="btn-start" onclick="startCamera()">🚀 เริ่มบทเรียน</button>
     </div>
 
+    <div id="loading-layer">
+        <div class="loader"></div>
+        <div>กำลังเตรียมระบบ AR...</div>
+    </div>
+
     <div id="ui-layer">
         <button class="btn-back" onclick="stopCamera()">🏠 กลับหน้าหลัก</button>
         <div class="controls-hint">👆 1 นิ้วหมุน | ✌️ 2 นิ้วซูม</div>
     </div>
 
     <a-scene 
-        mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; uiScanning: no; filterMinCF:0.0001; filterBeta: 0.001;" 
+        mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; uiScanning: no; filterMinCF:0.0001; filterBeta: 0.001; missTolerance: 5;" 
         color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
+        renderer="colorManagement: true, physicallyCorrectLights, antialias: true" 
         vr-mode-ui="enabled: false" 
         device-orientation-permission-ui="enabled: false"
         gesture-detector>
@@ -156,24 +178,66 @@
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <a-entity gltf-model="#model-core" rotation="90 0 0" position="0 0 0" scale="0.5 0.5 0.5" gesture-handler></a-entity>
+            <a-entity 
+                gltf-model="#model-core" 
+                rotation="90 0 0" position="0 0 0" scale="0.5 0.5 0.5" 
+                gesture-handler>
+            </a-entity>
         </a-entity>
 
         <a-entity mindar-image-target="targetIndex: 1">
-            <a-entity gltf-model="#model-earth" rotation="90 0 0" position="0 0 0" scale="0.5 0.5 0.5" gesture-handler></a-entity>
+            <a-entity 
+                gltf-model="#model-earth" 
+                rotation="90 0 0" position="0 0 0" scale="0.5 0.5 0.5" 
+                gesture-handler>
+            </a-entity>
         </a-entity>
 
     </a-scene>
 
     <script>
+        const homeScreen = document.getElementById('home-screen');
+        const loadingLayer = document.getElementById('loading-layer');
+        const uiLayer = document.getElementById('ui-layer');
+        const scene = document.querySelector('a-scene');
+
+        // สถานะระบบ
+        let isARReady = false;
+
+        // เมื่อระบบ AR พร้อม (กล้องติดแล้ว)
+        scene.addEventListener('arReady', () => {
+            isARReady = true;
+            // ถ้า User กดปุ่มเริ่มรอไว้แล้ว ให้ปิด Loading แล้วโชว์ UI เลย
+            if (loadingLayer.style.display === 'flex') {
+                loadingLayer.style.opacity = '0';
+                setTimeout(() => {
+                    loadingLayer.style.display = 'none';
+                    uiLayer.style.display = 'block';
+                }, 500);
+            }
+        });
+
         function startCamera() {
-            document.getElementById('home-screen').style.transform = 'translateY(-100%)';
-            document.getElementById('ui-layer').style.display = 'block';
+            // 1. เลื่อนหน้า Home ขึ้น
+            homeScreen.style.transform = 'translateY(-100%)';
+            
+            // 2. ถ้า AR ยังไม่พร้อม ให้โชว์ Loading ก่อน
+            if (!isARReady) {
+                loadingLayer.style.display = 'flex';
+            } else {
+                // ถ้าพร้อมแล้ว โชว์ UI เลย
+                uiLayer.style.display = 'block';
+            }
         }
 
         function stopCamera() {
-            document.getElementById('home-screen').style.transform = 'translateY(0%)';
-            setTimeout(() => { document.getElementById('ui-layer').style.display = 'none'; }, 500);
+            // เลื่อนหน้า Home ลงมาทับ
+            homeScreen.style.transform = 'translateY(0%)';
+            setTimeout(() => {
+                uiLayer.style.display = 'none';
+                loadingLayer.style.display = 'none';
+                loadingLayer.style.opacity = '1'; // รีเซ็ตค่า Opacity
+            }, 500);
         }
     </script>
 </body>
