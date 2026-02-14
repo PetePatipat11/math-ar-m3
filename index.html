@@ -13,17 +13,17 @@
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Kanit', sans-serif; }
 
-        /* --- 1. หน้า Home Screen (ปรับให้คลีนขึ้น) --- */
+        /* --- 1. หน้า Home Screen (หน้าแรก) --- */
         #home-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            /* พื้นหลังสีจักรวาล */
             background: linear-gradient(135deg, #0b0f19 0%, #1a2a6c 50%, #b21f1f 100%);
-            z-index: 9999;
+            z-index: 9999; /* อยู่บนสุด บังกล้องไว้ก่อน */
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: white; text-align: center;
             transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
         }
 
-        /* โลโก้หมุนๆ */
         .planet-icon {
             font-size: 100px; margin-bottom: 20px;
             animation: float 3s ease-in-out infinite;
@@ -33,7 +33,7 @@
         h1 { margin: 0; font-size: 2.8em; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); line-height: 1.2; }
         h2 { margin: 10px 0 50px 0; font-size: 1.4em; font-weight: 300; color: #ffcc00; }
 
-        /* ปุ่มเริ่ม (ปรับให้เด่นขึ้น) */
+        /* ปุ่มเริ่ม (กดปุ่มนี้แล้วกล้องจะมา) */
         .btn-start {
             background: linear-gradient(90deg, #ff512f, #dd2476);
             color: white; border: none; padding: 18px 70px;
@@ -45,7 +45,7 @@
         }
         .btn-start:hover { transform: scale(1.05); box-shadow: 0 8px 25px rgba(221, 36, 118, 0.7); }
 
-        /* --- 2. ปุ่มเมนูตอนเข้าโหมดกล้อง --- */
+        /* --- 2. ปุ่มย้อนกลับ (แสดงตอนเปิดกล้อง) --- */
         #ui-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; 
@@ -60,6 +60,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
+        /* Animation */
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(221, 36, 118, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(221, 36, 118, 0); } 100% { box-shadow: 0 0 0 0 rgba(221, 36, 118, 0); } }
     </style>
@@ -70,12 +71,11 @@
         <div class="planet-icon">🌍</div>
         <h1>โลกและการเปลี่ยนแปลง</h1>
         <h2>วิชาวิทยาศาสตร์ ชั้นมัธยมศึกษาปีที่ 2</h2>
-
-        <button class="btn-start" onclick="startExperience()">🚀 เริ่มบทเรียน</button>
+        <button class="btn-start" onclick="startCamera()">🚀 เริ่มบทเรียน</button>
     </div>
 
     <div id="ui-layer">
-        <button class="btn-back" onclick="goBackHome()">🏠 กลับหน้าหลัก</button>
+        <button class="btn-back" onclick="stopCamera()">🏠 หน้าหลัก</button>
     </div>
 
     <a-scene 
@@ -111,12 +111,14 @@
     </a-scene>
 
     <script>
-        function startExperience() {
+        // ฟังก์ชันเปิดกล้อง (ซ่อนหน้า Home)
+        function startCamera() {
             document.getElementById('home-screen').style.transform = 'translateY(-100%)';
             document.getElementById('ui-layer').style.display = 'block';
         }
 
-        function goBackHome() {
+        // ฟังก์ชันปิดกล้อง (กลับมาหน้า Home)
+        function stopCamera() {
             document.getElementById('home-screen').style.transform = 'translateY(0%)';
             setTimeout(() => {
                 document.getElementById('ui-layer').style.display = 'none';
